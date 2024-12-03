@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 import { Devices, Dashboard, AccountCircle } from '@mui/icons-material';
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../Context/UserContext";
 
 import { Menu, MenuItem } from "@mui/material";
 
 function NavBar() {
     const navigate = useNavigate();
-    const { user } = useUser();
+    
 
     const [anchorEl, setAnchorEl] = useState(null);
     const openMenu = Boolean(anchorEl);

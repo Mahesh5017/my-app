@@ -1,0 +1,55 @@
+.g168-button {
+  font-family: "Courier", monospace; /* Apply the cool font */
+  font-size: 24px;
+  font-weight: 600; /* Make it bold */
+  color: black; /* Default font color */
+  background-color: transparent; /* No background initially */
+  border: 0px solid black; /* Border to make it stand out */
+  padding: 8px 16px; /* Add padding for better size */
+  border-radius: 8px; /* Rounded corners for a modern look */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: all 0.3s ease; /* Smooth hover effect */
+}
+
+.g168-button:hover {
+  background-color: black; /* Black background on hover */
+  color: white; /* White font on hover */
+  transform: translateY(-3px); /* Slight lift on hover */
+}
+
+/* General styling for the dropdown menu */
+.menu-container {
+  border-radius: 16px; /* Curved edges for the dropdown menu */
+  overflow: hidden;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+}
+
+/* Styling the MenuItems */
+.menu-container .MuiMenuItem-root {
+
+  padding: 10px 20px;
+  font-size: 16px;
+  color: #333;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  border-radius: 0; /* Ensure menu items remain rectangular */
+}
+
+/* Hover effect for MenuItems */
+.menu-container .MuiMenuItem-root:hover {
+
+  background-color: black;
+  color: white;
+}
+
+/* Anchor for the dropdown */
+.nav-link {
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px; /* Optional: Slightly curved edges for the trigger button */
+  transition: background-color 0.3s ease;
+}
+
+.nav-link:hover {
+  background-color: #f1f1f1;
+}

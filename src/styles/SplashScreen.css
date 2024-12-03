@@ -1,0 +1,75 @@
+* { 
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  header {
+    position: relative;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 80px;
+  }
+  
+  header h4 {
+    position: absolute;
+    left: 10%;
+    bottom: 1rem;
+    font-size: 1.6rem;
+  }
+  
+  /* Splash Screen */
+  .intro {
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: #2B2D42;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 1;
+    transition: opacity 1s ease-in-out;
+  }
+  
+  .intro.fade-out {
+    opacity: 0;
+    pointer-events: none; /* Ensure it's unclickable once faded out */
+  }
+  
+  .logo-header {
+    color: #D9DCD6;
+  }
+  
+  .logo {
+    display: inline-block;
+    font-family: "Courier", monospace;
+    font-size: 3rem;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+  }
+  
+  .logo.active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  .logo.fade {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  
+  /* Dashboard */
+  .dashboard {
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+  }
+  
+  .dashboard.fade-in {
+    opacity: 1;
+  }
+  

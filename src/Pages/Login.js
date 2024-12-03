@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Button, TextField, Checkbox, FormControlLabel, Typography, Divider } from '@mui/material';
-import { Google } from '@mui/icons-material';
+// import { Google } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../Context/UserContext';
-
-
+import { ToastContainer, toast } from 'react-toastify';
+import { GoogleLogin } from '@react-oauth/google';
 function Login() {
 
   const [data, setdata] = useState({ email: '', password: '' });
@@ -12,7 +12,53 @@ function Login() {
   const { setUser } = useUser();
 
   const handleSignUp = () => navigate('/signup');
+
+  // Handle Google login
+  const responseGoogle = async (response) => {
+    try {
+      console.log("Google Sign-In response:", response); // Verify the full response object
   
+      const token = response.credential; // Extract the token from the 'credential' field
+      console.log("Token:", token); // Log the token to verify
+  
+      // Prompt the user to set a password if it's their first time logging in
+      const password = prompt("Set a password for your account (at least 6 characters):");
+      if (!password || password.length < 6) {
+        toast.info("Password must be at least 6 characters.");
+        return;
+      }
+  
+      // Send the Google token and the password to the backend
+      const res = await fetch("http://localhost:8080/google-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      });
+  
+      // Check if the response is OK
+      if (res.ok) {
+        const data = await res.json();
+        const { user } = data;
+  
+        if (data.success) {
+          localStorage.setItem("user", JSON.stringify(user)); // Store user in local storage
+          setUser(user); // Update state with user info
+          console.log("Backend response:", data);
+          navigate("/dashboard"); // Redirect to dashboard
+        } else {
+          toast.error("Google login failed.");
+        }
+      } else {
+        toast.error("Failed to login with Google.");
+      }
+    } catch (error) {
+      toast.error("An error occurred during Google login.");
+      console.error(error);
+    }
+  };
+  
+
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
@@ -22,12 +68,14 @@ function Login() {
         body: JSON.stringify(data)
       })
       if (response.ok) {
-        const userdata = await response.json();
-        setUser(userdata);
+        const {user} = await response.json();
+        console.log(user)
+        setUser(user);
         navigate("/dashboard");
       } else {
-        alert("Login Falied,Invalid Credentials")
+        toast.error("Login Falied,Invalid Credentials")
       }
+
     } catch (error) {
       console.log(error);
     }
@@ -35,6 +83,7 @@ function Login() {
 
   return (
     <section className="vh-100">
+      <ToastContainer />
       <div className="container py-5 h-100">
         <div className="row d-flex align-items-center justify-content-center h-100">
           <div className="col-md-8 col-lg-7 col-xl-6">
@@ -77,7 +126,7 @@ function Login() {
                   control={<Checkbox defaultChecked />}
                   label="Remember me"
                 />
-                <a href="#!" className="text-muted">
+                <a href="/forgotpassword" className="text-muted">
                   Forgot password?
                 </a>
               </div>
@@ -93,18 +142,15 @@ function Login() {
                 Sign in
               </Button>
 
-              <Divider className="my-4" />
+              <Divider className="my-2" />
 
-              <Button
-                variant="outlined"
-                color="error"
-                fullWidth
-                size="large"
-                startIcon={<Google />}
-                href="#!"
-              >
-                Continue with Google
-              </Button>
+              <GoogleLogin
+                clientId="372643846988-q1leagbuou69dc97tabemjv6babm6acf.apps.googleusercontent.com"
+                buttonText="Login with Google"
+                onSuccess={responseGoogle}
+                onFailure={responseGoogle}
+                cookiePolicy={"single_host_origin"}
+              />
             </form>
             <Typography variant="body2" align="center" color="black" className="mt-3">
               Don't have an account?{' '}

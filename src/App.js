@@ -8,6 +8,8 @@ import Devices from "./Pages/Devices";
 import Settings from "./Pages/Settings";
 import { UserProvider } from "./Context/UserContext";
 import { WebSocketProvider } from './Context/WebSocketContext';
+import ForgotPassword from "./Pages/ForgotPassword";
+import 'react-toastify/dist/ReactToastify.css';
 
 
 function App() {
@@ -17,6 +19,7 @@ function App() {
         <Router>
           <Routes>
             <Route path="/" element={<Login />} />
+            <Route path="/forgotpassword" element={<ForgotPassword />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="*" element={
               <><Navbar />

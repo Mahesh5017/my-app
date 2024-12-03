@@ -4,9 +4,12 @@ const http = require('http');
 const WebSocket = require('ws');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
+const nodemailer = require('nodemailer');
+const { OAuth2Client } = require("google-auth-library");
 
 
 const app = express();
+app.use(express.json());
 app.use(cors());
 app.use(bodyParser.json());
 const server = http.createServer(app);
@@ -28,6 +31,7 @@ const DeviceSchema = new mongoose.Schema({
     devicename: { type: String, required: true },
     location: { type: String, required: true },
     devicetype: { type: String, required: true },
+    timeStamp:{type:String , required : true}
 });
 
 const RoomSchema = new mongoose.Schema({
@@ -40,14 +44,19 @@ const UserSchema = new mongoose.Schema({
     password: { type: String, required: true },
     rooms: [RoomSchema],
     devices: [DeviceSchema],
+    otp: { type: String },
+    googleId: { type: String },
 });
 
 const UserDetails = mongoose.model("UserDetails", UserSchema);
 
+// Signup Route
 app.post("/signup", async (req, res) => {
     const { username, email, password } = req.body;
     try {
-        const user = new UserDetails({ username, email, password });
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        const user = new UserDetails({ username, email, password: hashedPassword });
         await user.save();
         res.status(201).json({ message: "Signup successful" });
     } catch (error) {
@@ -56,23 +65,30 @@ app.post("/signup", async (req, res) => {
     }
 });
 
+// Login Route
 app.post("/login", async (req, res) => {
     const { email, password } = req.body;
-    
+
     try {
         const user = await UserDetails.findOne({ email });
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        if (user.password !== password) {
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
-        res.status(200).json(user);
+
+        res.status(200).json({ message: "Login successful", user });
+        
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error logging in" });
     }
 });
+
+
 
 app.post("/newdevice", async (req, res) => {
     const { email, devicedata } = req.body;
@@ -264,8 +280,173 @@ wss.on('connection', (ws) => {
             }
         });
     });
+}); 
+  const bcrypt = require('bcrypt'); // For securely hashing passwords
+  app.use(express.json()); // Parse JSON request bodies
+  
+  // Change password
+  app.post('/api/change-password',async(req,res)=>{
+    const { email, newPassword} = req.body;
+    try {
+        const user = await UserDetails.findOne({email});
+        const result = await UserDetails.updateOne({email},{$set: {password:newPassword}})
+        if(result.matchedCount === 0){
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        res.status(200).json({ success: true, message: 'Password updated successfully' });
+    } catch (error) {
+        console.log(error);
+    }
+  })
+  
+//node mailer
+
+// Nodemailer transport configuration
+const transporter = nodemailer.createTransport({
+    service: 'gmail', // You can choose other services like SendGrid or SMTP
+    auth: {
+        user: 'maheshn0802@gmail.com',
+        pass: 'ttjh qmse aiit qrkt',
+    },
 });
 
+// Generate a random OTP (6 digits)
+const generateOTP = () => {
+    let otp = '';
+    for (let i = 0; i < 6; i++) {
+        otp += Math.floor(Math.random() * 10);
+    }
+    return otp;
+};
+
+// Forgot Password Route: Send OTP to Email
+app.post('/api/forgot-password', async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await UserDetails.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const otp = generateOTP();
+        user.otp = otp;
+        const sentotp = otp;
+        await user.save();
+
+        console.log(`OTP for ${email}: ${otp} ${sentotp}`); // Debugging log
+
+        const mailOptions = {
+            from: 'nmahesh0802@gmail.com',
+            to: email,
+            subject: 'Password Reset OTP',
+            text: `Your OTP for resetting your password is: ${otp}`,
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error sending mail:', error);
+                return res.status(500).json({ message: 'Failed to send OTP' });
+            }
+            res.status(200).json({ message: 'OTP sent to email' });
+        });
+    } catch (error) {
+        console.error('Error in forgot-password:', error);
+        res.status(500).json({ message: 'Error sending OTP' });
+    }
+});
+
+app.post('/api/reset-password', async (req, res) => {
+    const { email, otp, newPassword } = req.body;
+
+    try {
+        const user = await UserDetails.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        console.log(`Stored OTP: ${user.otp}, Provided OTP: ${otp}`); // Debugging log
+
+        if (user.otp !== otp) {
+            return res.status(400).json({ message: 'Incorrect OTP' });
+        }
+        console.log(user.otp);
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        user.password = hashedPassword;
+        // user.otp = undefined;
+        await user.save();
+
+        res.status(200).json({ message: 'Password reset successfully' });
+    } catch (error) {
+        console.error('Error in reset-password:', error);
+        res.status(500).json({ message: 'Error resetting password' });
+    }
+});
+
+
+  
+// Google login verification route
+
+const CLIENT_ID = "372643846988-q1leagbuou69dc97tabemjv6babm6acf.apps.googleusercontent.com"; // Replace with your Google Client ID
+const client = new OAuth2Client(CLIENT_ID);
+app.post("/google-login", async (req, res) => {
+    const { token, password } = req.body;
+  
+    if (!token) {
+      return res.status(400).json({ success: false, error: "Token not provided" });
+    }
+  
+    try {
+      // Verify the Google token
+      const ticket = await client.verifyIdToken({
+        idToken: token,
+        audience: "372643846988-q1leagbuou69dc97tabemjv6babm6acf.apps.googleusercontent.com",
+      });
+      const payload = ticket.getPayload();
+  
+      // Extract user details from Google payload
+      const { email, name } = payload;
+  
+      // Check if the user already exists
+      let user = await UserDetails.findOne({ email });
+  
+      if (user) {
+        // Existing user: Log in directly without requiring a password
+        return res.json({ success: true, user });
+      }
+  
+      // New user: Require a password
+      if (!password || password.length < 6) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Password must be at least 6 characters" });
+      }
+  
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(password, 10);
+  
+      // Create a new user
+      user = new UserDetails({
+        username: name,
+        email,
+        password: hashedPassword,
+        rooms: [],
+        devices: [],
+      });
+      await user.save();
+  
+      res.json({ success: true, user });
+    } catch (error) {
+      console.error("Error verifying token:", error.message);
+      res.status(401).json({ success: false, error: "Invalid token" });
+    }
+  });
+  
+
+
+  
 server.listen(8080, () => {
     console.log('Server is running on http://localhost:8080');
 });
